@@ -1,0 +1,8 @@
+@import "./styles/_variables.scss";
+@import "./styles/_keyframes-animations.scss";
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  width: 100vw;
+}
