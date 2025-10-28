@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NotionEditorContent from "./NotionLikeEditorContent.vue";
+import NotionLikeEditorProvider from "./NotionLikeEditorProvider.vue";
 
 defineProps({
   room: {
@@ -14,7 +14,7 @@ defineProps({
 </script>
 
 <template>
-  <NotionEditorContent :placeholder="placeholder" />
+  <NotionLikeEditorProvider :placeholder="placeholder" />
 </template>
 
 <style lang="scss">
