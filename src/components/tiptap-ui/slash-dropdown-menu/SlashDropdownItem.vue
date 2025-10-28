@@ -12,7 +12,7 @@ interface SlashDropdownItemProps {
 
 const props = defineProps<SlashDropdownItemProps>();
 
-const itemRef = ref<HTMLDivElement | null>(null);
+const itemRef = ref<InstanceType<typeof Button> | null>(null);
 
 watch(
   () => props.isSelected,
@@ -21,16 +21,17 @@ watch(
       '[data-selector="tiptap-slash-dropdown-menu"]'
     ) as HTMLElement;
 
-    if (!itemRef.value || !isSelected || !selector) return;
+    if (!itemRef.value?.buttonRef || !isSelected || !selector) return;
 
     await nextTick();
 
-    const overflow = getElementOverflowPosition(itemRef.value, selector);
+    const buttonElement = itemRef.value.buttonRef;
+    const overflow = getElementOverflowPosition(buttonElement, selector);
 
     if (overflow === "top") {
-      itemRef.value.scrollIntoView(true);
+      buttonElement.scrollIntoView(true);
     } else if (overflow === "bottom") {
-      itemRef.value.scrollIntoView(false);
+      buttonElement.scrollIntoView(false);
     }
   }
 );

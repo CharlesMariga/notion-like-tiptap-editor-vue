@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from "vue";
+
 defineProps({
   tooltip: {},
   showTooltip: {
@@ -10,10 +12,16 @@ defineProps({
     required: false,
   },
 });
+
+const buttonRef = ref<HTMLButtonElement | null>(null);
+
+defineExpose({
+  buttonRef,
+});
 </script>
 
 <template>
-  <button class="tiptap-button">
+  <button ref="buttonRef" class="tiptap-button">
     <slot />
   </button>
 </template>

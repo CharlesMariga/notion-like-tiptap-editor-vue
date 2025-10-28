@@ -277,14 +277,30 @@ const handleEnterKey = () => {
   return false;
 };
 
-// Store globally for access from extensions
+// Store handlers globally for access from extensions
+// Use a map keyed by plugin key to support multiple suggestion menus
+const ensureHandlersMap = (ed: any) => {
+  if (!ed.__suggestionMenuEnterHandlers) {
+    ed.__suggestionMenuEnterHandlers = new Map();
+  }
+};
+
 if (editor.value) {
-  (editor.value as any).__suggestionMenuEnterHandler = handleEnterKey;
+  ensureHandlersMap(editor.value);
+  (editor.value as any).__suggestionMenuEnterHandlers.set(pluginKey.value, handleEnterKey);
 }
 
-watch(editor, (newEditor) => {
+watch([editor, pluginKey], ([newEditor, newPluginKey]) => {
   if (newEditor) {
-    (newEditor as any).__suggestionMenuEnterHandler = handleEnterKey;
+    ensureHandlersMap(newEditor);
+    (newEditor as any).__suggestionMenuEnterHandlers.set(newPluginKey, handleEnterKey);
+  }
+});
+
+// Cleanup handler on unmount
+onUnmounted(() => {
+  if (editor.value) {
+    (editor.value as any).__suggestionMenuEnterHandlers?.delete(pluginKey.value);
   }
 });
 

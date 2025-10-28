@@ -10,6 +10,8 @@ import NotionLikeEditorHeader from "./NotionLikeEditorHeader.vue";
 
 // --- Tiptap UI ---
 import SlashDropdownMenu from "../../tiptap-ui/slash-dropdown-menu/SlashDropdownMenu.vue";
+import EmojiDropdown from "@/components/tiptap-ui/emoji-dropdown/EmojiDropdown.vue";
+import Emoji, { gitHubEmojis } from "@tiptap/extension-emoji";
 
 // --- Lib ---
 
@@ -19,21 +21,23 @@ const props = defineProps<{
 
 // Create an extension that handles Enter for suggestion menus
 const SuggestionEnterFix = Extension.create({
-  name: 'suggestionEnterFix',
+  name: "suggestionEnterFix",
   priority: 2000, // Very high priority to run before default handlers
 
   addKeyboardShortcuts() {
     return {
       Enter: () => {
-        // Call the global handler we exposed from SuggestionMenu
-        const handler = (this.editor as any).__suggestionMenuEnterHandler;
+        // Check all registered handlers from all SuggestionMenu instances
+        const handlers = (this.editor as any).__suggestionMenuEnterHandlers;
 
-        if (handler) {
-          const handled = handler();
-
-          if (handled) {
-            // Suggestion menu handled the Enter key, prevent default behavior
-            return true;
+        if (handlers instanceof Map) {
+          // Try each handler until one handles the Enter key
+          for (const handler of handlers.values()) {
+            const handled = handler();
+            if (handled) {
+              // Suggestion menu handled the Enter key, prevent default behavior
+              return true;
+            }
           }
         }
 
@@ -67,6 +71,22 @@ const editor = useEditor({
     //     context.editor.commands.aiGenerationHasMessage(hasMessage);
     //   },
     // }),
+    Emoji.configure({
+      emojis: gitHubEmojis.filter((emoji) => !emoji.name.includes("regional")),
+      forceFallbackImages: true,
+      suggestion: {
+        // Use a different char to avoid conflict with our custom EmojiDropdown
+        char: '§', // Using a character that won't be typed normally
+        render: () => {
+          return {
+            onStart: () => {},
+            onUpdate: () => {},
+            onKeyDown: () => false,
+            onExit: () => {},
+          };
+        },
+      },
+    }),
     StarterKit.configure({
       undoRedo: false,
       dropcursor: {
@@ -90,6 +110,7 @@ const editor = useEditor({
       role="presentation"
       class="notion-like-editor-content"
     />
+    <EmojiDropdown :editor="editor" />
     <SlashDropdownMenu :editor="editor" />
   </div>
   <LoadingSpinner v-else />
