@@ -22,9 +22,17 @@ defineProps({
 </script>
 
 <template>
-  <Button type="button" data-style="ghost" role="button" :tabindex="-1">
+  <Button
+    type="button"
+    data-style="ghost"
+    role="button"
+    :tabindex="-1"
+  >
     <slot>
-      <span v-if="text" class="tiptap-button-text">{{ text }}</span>
+      <span
+        v-if="text"
+        class="tiptap-button-text"
+      >{{ text }}</span>
     </slot>
   </Button>
 </template>

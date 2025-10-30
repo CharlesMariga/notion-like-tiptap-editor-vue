@@ -10,12 +10,13 @@ import EmojiMenuItem from "./EmojiMenuItem.vue";
 
 // --- UI Primitives ---
 import { ButtonGroup } from "@/components/tiptap-ui-primitive/button";
-import { Card, CardBody, CardHeader } from "@/components/tiptap-ui-primitive/card";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+} from "@/components/tiptap-ui-primitive/card";
 
 import { getFilteredEmojis } from "./emoji-menu-utils";
-
-// --- Styles ---
-import "@/components/tiptap-ui/emoji-menu/emoji-menu.scss";
 
 interface EmojiMenuProps {
   emojis: T[];
@@ -79,17 +80,24 @@ const renderedItems = computed(() => {
         placeholder="Add a emoji reaction..."
         autofocus
         class="emoji-menu-search-input"
-      />
+      >
     </CardHeader>
 
-    <CardBody v-if="renderedItems.length" class="emoji-menu-list">
+    <CardBody
+      v-if="renderedItems.length"
+      class="emoji-menu-list"
+    >
       <ButtonGroup>
         <component
+          :is="item"
           v-for="(item, index) in renderedItems"
           :key="index"
-          :is="item"
         />
       </ButtonGroup>
     </CardBody>
   </Card>
 </template>
+
+<style lang="scss">
+@use "./emoji-menu.scss";
+</style>

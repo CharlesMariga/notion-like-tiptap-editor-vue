@@ -11,7 +11,10 @@ defineProps({
 </script>
 
 <template>
-  <div :data-orientation="orientation" class="tiptap-button-group">
+  <div
+    :data-orientation="orientation"
+    class="tiptap-button-group"
+  >
     <slot />
   </div>
 </template>

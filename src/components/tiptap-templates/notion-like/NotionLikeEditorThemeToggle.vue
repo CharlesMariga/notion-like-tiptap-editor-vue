@@ -16,11 +16,17 @@ const toggleDarkMode = () =>
 
 <template>
   <Button
-    @click="toggleDarkMode"
     :aria-label="`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`"
     data-style="ghost"
+    @click="toggleDarkMode"
   >
-    <MoonStarIcon v-if="mode === 'dark'" class="tiptap-button-icon" />
-    <SunIcon v-else class="tiptap-button-icon" />
+    <MoonStarIcon
+      v-if="mode === 'dark'"
+      class="tiptap-button-icon"
+    />
+    <SunIcon
+      v-else
+      class="tiptap-button-icon"
+    />
   </Button>
 </template>

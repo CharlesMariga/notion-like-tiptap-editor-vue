@@ -41,12 +41,18 @@ const BadgeIcon = props.item.badge;
 
 <template>
   <Button
+    ref="itemRef"
     data-style="ghost"
     :data-active-state="isSelected ? 'on' : 'off'"
-    ref="itemRef"
     @click="onSelect"
   >
-    <component v-if="BadgeIcon" :is="BadgeIcon" class="tiptap-button-icon" />
-    <div class="tiptap-button-text">{{ item.title }}</div>
+    <component
+      :is="BadgeIcon"
+      v-if="BadgeIcon"
+      class="tiptap-button-icon"
+    />
+    <div class="tiptap-button-text">
+      {{ item.title }}
+    </div>
   </Button>
 </template>

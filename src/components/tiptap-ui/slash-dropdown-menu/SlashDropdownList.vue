@@ -106,9 +106,9 @@ const renderedItems = computed(() => {
   >
     <CardBody class="tiptap-slash-card-body">
       <component
+        :is="item"
         v-for="(item, index) in renderedItems"
         :key="index"
-        :is="item"
       />
     </CardBody>
   </Card>

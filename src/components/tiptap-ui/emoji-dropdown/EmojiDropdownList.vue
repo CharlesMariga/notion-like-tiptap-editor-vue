@@ -48,9 +48,9 @@ const renderedItems = computed(() => {
     <CardBody>
       <ButtonGroup>
         <component
+          :is="item"
           v-for="(item, index) in renderedItems"
           :key="index"
-          :is="item"
         />
       </ButtonGroup>
     </CardBody>

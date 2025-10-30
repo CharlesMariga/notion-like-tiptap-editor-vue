@@ -56,8 +56,11 @@ const handleSelect = () => {
       class="tiptap-button-emoji"
       :src="emoji.fallbackImage"
       :alt="emoji.name"
-    />
-    <span v-else class="tiptap-button-emoji">{{ emoji.emoji }}</span>
+    >
+    <span
+      v-else
+      class="tiptap-button-emoji"
+    >{{ emoji.emoji }}</span>
     <span class="tiptap-button-text">:{{ emoji.name }}:</span>
   </Button>
 </template>

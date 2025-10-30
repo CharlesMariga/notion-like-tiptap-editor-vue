@@ -21,7 +21,10 @@ defineExpose({
 </script>
 
 <template>
-  <button ref="buttonRef" class="tiptap-button">
+  <button
+    ref="buttonRef"
+    class="tiptap-button"
+  >
     <slot />
   </button>
 </template>

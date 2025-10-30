@@ -39,7 +39,10 @@ const getItems = ({ query, editor }: { query: string; editor: any }) => {
     :editor="editor"
   >
     <template #default="slotProps">
-      <SlashDropdownList v-bind="slotProps" :config="config" />
+      <SlashDropdownList
+        v-bind="slotProps"
+        :config="config"
+      />
     </template>
   </SuggestionMenu>
 </template>
