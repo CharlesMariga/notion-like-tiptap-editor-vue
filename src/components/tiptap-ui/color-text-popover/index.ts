@@ -1,0 +1,6 @@
+export { default as ColorTextPopover } from './ColorTextPopover.vue'
+export { default as TextStyleColorPanel } from './TextStyleColorPanel.vue'
+export { default as RecentColorsSection } from './RecentColorsSection.vue'
+export { default as RecentColorButton } from './RecentColorButton.vue'
+export { default as ColorGroup } from './ColorGroup.vue'
+export * from '@/composables/useColorTextPopover'
