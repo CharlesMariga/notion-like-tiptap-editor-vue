@@ -49,7 +49,12 @@ export function useCollaboration(options: CollaborationOptions) {
   watch(
     [collabToken, hasCollab],
     async ([newCollabToken, newHasCollab]) => {
-      if (!newHasCollab || !newCollabToken) return
+      console.log('🔍 Collab watch triggered:', { hasCollab: newHasCollab, hasToken: !!newCollabToken })
+
+      if (!newHasCollab || !newCollabToken) {
+        console.log('⏭️  Skipping provider creation - no collab or no token')
+        return
+      }
 
       try {
         // Dynamically import TiptapCollabProvider only if available
@@ -59,12 +64,43 @@ export function useCollaboration(options: CollaborationOptions) {
         const documentName = room ? `${docPrefix}${room}` : docPrefix
         const appId = TIPTAP_COLLAB_APP_ID
 
+        console.log('🔄 Attempting to connect to Tiptap Collaboration...')
+        console.log('📝 Document name:', documentName)
+        console.log('🆔 App ID:', appId)
+        console.log('ℹ️  If connection fails (e.g., expired token), the editor will work in offline mode.')
+
         const newProvider = new TiptapCollabProvider({
           name: documentName,
           appId,
           token: newCollabToken,
           document: ydoc,
           ...(initialContent && { initialContent }),
+        })
+
+        // Track if we've connected at least once
+        let hasConnected = false
+
+        // Listen for connection status
+        newProvider.on('status', ({ status }: { status: string }) => {
+          if (status === 'connected') {
+            hasConnected = true
+            console.log('✓ Collaboration connected successfully')
+          } else if (status === 'disconnected' && hasConnected) {
+            console.warn('⚠ Collaboration disconnected. Working in offline mode.')
+          }
+        })
+
+        // Handle authentication errors
+        newProvider.on('authenticationFailed', () => {
+          console.warn('⚠ Collaboration authentication failed (token may be expired). Working in offline mode.')
+          // Don't disable hasCollab - just work offline
+        })
+
+        // Handle connection errors silently - working offline is expected
+        newProvider.on('synced', ({ state }: { state: boolean }) => {
+          if (state && !hasConnected) {
+            hasConnected = true
+          }
         })
 
         provider.value = newProvider

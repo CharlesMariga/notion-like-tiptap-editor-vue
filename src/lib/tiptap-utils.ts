@@ -1,6 +1,6 @@
 import type { Editor } from '@tiptap/vue-3'
 import type { Node as TiptapNode } from '@tiptap/pm/model'
-import { Selection, TextSelection } from '@tiptap/pm/state'
+import { Selection, TextSelection, NodeSelection } from '@tiptap/pm/state'
 import { uploadImageToSupabase } from './supabase'
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -155,15 +155,22 @@ export function focusNextNode(editor: Editor): boolean {
  */
 export const isNodeTypeSelected = (
   editor: Editor | null,
-  nodeTypes: string[]
+  types: string[] = []
 ): boolean => {
-  if (!editor) return false
-  const { selection } = editor.state
-  const { $from } = selection
+  if (!editor || !editor.state.selection) return false
 
-  return nodeTypes.some((nodeType) => {
-    return $from.parent.type.name === nodeType
-  })
+  const { state } = editor
+  const { selection } = state
+
+  if (selection.empty) return false
+
+  // Check if it's a NodeSelection (when a node is clicked/selected)
+  if (selection instanceof NodeSelection) {
+    const node = selection.node
+    return node ? types.includes(node.type.name) : false
+  }
+
+  return false
 }
 
 type ProtocolOptions = {
@@ -339,7 +346,11 @@ export function findNodePosition(props: {
  * @param file The image file to upload
  * @returns Promise resolving to the URL of the uploaded image
  */
-export const handleImageUpload = async (file: File): Promise<string> => {
+export const handleImageUpload = async (
+  file: File,
+  onProgress?: (event: { progress: number }) => void,
+  abortSignal?: AbortSignal
+): Promise<string> => {
   // Validate file
   if (!file) {
     throw new Error('No file provided')
@@ -352,9 +363,33 @@ export const handleImageUpload = async (file: File): Promise<string> => {
   }
 
   try {
-    const url = await uploadImageToSupabase(file)
+    // Start with initial progress
+    onProgress?.({ progress: 0 })
+
+    // Check if upload was aborted
+    if (abortSignal?.aborted) {
+      throw new Error('Upload cancelled')
+    }
+
+    // Simulate initial progress
+    onProgress?.({ progress: 10 })
+
+    // Upload to Supabase with progress tracking
+    const url = await uploadImageToSupabase(file, onProgress, abortSignal)
+
+    // Check if upload was aborted before completing
+    if (abortSignal?.aborted) {
+      throw new Error('Upload cancelled')
+    }
+
+    // Complete progress
+    onProgress?.({ progress: 100 })
+
     return url
   } catch (error) {
+    if (abortSignal?.aborted) {
+      throw new Error('Upload cancelled')
+    }
     console.error('Image upload failed:', error)
     throw new Error('Failed to upload image')
   }

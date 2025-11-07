@@ -305,10 +305,13 @@ const getItemImplementations = () => {
     image: {
       check: (editor: Editor) => isNodeInSchema('image', editor),
       action: ({ editor }: { editor: Editor }) => {
-        const url = window.prompt('Enter image URL:')
-        if (url) {
-          editor.chain().focus().setImage({ src: url }).run()
-        }
+        editor
+          .chain()
+          .focus()
+          .insertContent({
+            type: 'imageUpload',
+          })
+          .run()
       },
     },
   }

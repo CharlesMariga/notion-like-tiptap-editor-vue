@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, watch, onBeforeUnmount, provide } from "vue";
-import { EditorContent, useEditor, Editor as TiptapEditor } from "@tiptap/vue-3";
+import { ref, computed, watch, onBeforeUnmount, provide, type MaybeRef } from "vue";
+import { EditorContent, Editor } from "@tiptap/vue-3";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Mention } from "@tiptap/extension-mention";
 import { TaskList } from "@tiptap/extension-task-list";
@@ -74,10 +74,8 @@ const { user } = useUser();
 const { provider, ydoc } = useCollab();
 const { aiToken } = useAi();
 
-// Wait for dependencies before creating editor
-
-// Create editor configuration function
-const createEditorConfig = () => ({
+// Create editor configuration function that always includes collaboration
+const createEditorConfig = (collabProvider: any) => ({
   immediatelyRender: false,
   shouldRerenderOnTransaction: false,
   editorProps: {
@@ -95,19 +93,16 @@ const createEditorConfig = () => ({
     }),
     HorizontalRule,
     TextAlign.configure({ types: ["heading", "paragraph"] }),
-    ...(provider.value && ydoc
-      ? [
-          Collaboration.configure({ document: ydoc }),
-          CollaborationCaret.configure({
-            provider: provider.value,
-            user: {
-              id: user.value.id,
-              name: user.value.name,
-              color: user.value.color,
-            },
-          }),
-        ]
-      : []),
+    // Always include Collaboration extensions with the provided provider
+    Collaboration.configure({ document: ydoc }),
+    CollaborationCaret.configure({
+      provider: collabProvider,
+      user: {
+        id: user.value.id,
+        name: user.value.name,
+        color: user.value.color,
+      },
+    }),
     Placeholder.configure({
       placeholder: props.placeholder,
       emptyNodeClass: "is-empty with-slash",
@@ -157,74 +152,89 @@ const createEditorConfig = () => ({
             showDecorations: true,
             hideDecorationsOnStreamEnd: false,
             onLoading: (context) => {
-              context.editor.commands.aiGenerationSetIsLoading(true)
-              context.editor.commands.aiGenerationHasMessage(false)
+              context.editor.commands.aiGenerationSetIsLoading(true);
+              context.editor.commands.aiGenerationHasMessage(false);
             },
             onChunk: (context) => {
-              context.editor.commands.aiGenerationSetIsLoading(true)
-              context.editor.commands.aiGenerationHasMessage(true)
+              context.editor.commands.aiGenerationSetIsLoading(true);
+              context.editor.commands.aiGenerationHasMessage(true);
             },
             onSuccess: (context) => {
-              const hasMessage = !!context.response
-              context.editor.commands.aiGenerationSetIsLoading(false)
-              context.editor.commands.aiGenerationHasMessage(hasMessage)
+              const hasMessage = !!context.response;
+              context.editor.commands.aiGenerationSetIsLoading(false);
+              context.editor.commands.aiGenerationHasMessage(hasMessage);
             },
           }),
         ]
       : []),
   ],
-})
+});
 
-// Editor instance - create immediately but will update extensions
-const editor = useEditor(createEditorConfig())
+// Editor instance - initially null, will be created when provider is ready
+const editor = ref<Editor | null>(null);
 
-// Watch for aiToken and provider to become available, then update editor extensions
-watch([aiToken, provider], ([newAiToken, newProvider]) => {
-  if (newAiToken && newProvider && ydoc && editor.value) {
-    // Store current content
-    const content = editor.value.getHTML()
+// Watch for provider to be ready, then create editor
+watch(
+  [provider, aiToken],
+  ([newProvider, newAiToken]) => {
+    console.log("📺 NotionEditor watch triggered:", {
+      hasProvider: !!newProvider,
+      hasYdoc: !!ydoc,
+      hasAiToken: !!newAiToken,
+    });
 
-    // Destroy old editor
-    editor.value.destroy()
-
-    // Create new editor using the Editor constructor directly
-    const config = createEditorConfig()
-    const newEditor = new TiptapEditor(config)
-
-    // Restore content or set default if empty
-    if (content) {
-      newEditor.commands.setContent(content)
+    // Wait for provider to be available
+    if (!newProvider || !ydoc) {
+      console.log("⏭️  Waiting for provider and ydoc...");
+      return;
     }
 
-    // Update the ref
-    editor.value = newEditor
-  }
-}, { immediate: false })
+    console.log("🎉 Creating editor with collaboration!");
 
-// Set default content when editor is ready and document is empty
-watch(editor, (newEditor) => {
-  if (newEditor && provider.value) {
-    // Wait a bit for collaboration to sync, then check if document is empty
-    setTimeout(() => {
-      if (newEditor.isEmpty) {
-        newEditor.commands.setContent(defaultContent)
-      }
-    }, 100)
-  }
-}, { immediate: true })
+    // Destroy existing editor if any
+    if (editor.value) {
+      console.log("🗑️  Destroying existing editor");
+      editor.value.destroy();
+    }
+
+    // Create new editor with collaboration - pass provider explicitly
+    const config = createEditorConfig(newProvider);
+    const newEditor = new Editor({
+      ...config,
+      onCreate: ({ editor }) => {
+        console.log("✅ Editor created successfully");
+        // Set default content if document is empty after a short delay (to allow collab sync)
+        setTimeout(() => {
+          if (editor.isEmpty) {
+            console.log("📄 Setting default content");
+            editor.commands.setContent(defaultContent);
+          } else {
+            console.log("📄 Document has content from collaboration");
+          }
+        }, 100);
+      },
+    });
+
+    editor.value = newEditor;
+  },
+  { immediate: true }
+);
 
 // Cleanup on unmount
 onBeforeUnmount(() => {
   if (editor.value) {
-    editor.value.destroy()
+    editor.value.destroy();
   }
-})
+});
+
+// Create a properly typed editor ref for child components
+const typedEditor = computed<Editor | undefined>(() => (editor.value as Editor) ?? undefined);
 
 // Provide editor to child components
 provide("editor", editor);
 
 // UI state management
-const uiState = useUiEditorState(editor);
+const uiState = useUiEditorState(editor as MaybeRef<Editor | null>);
 
 // Cursor style based on dragging
 const cursorStyle = computed(() => ({
@@ -236,10 +246,12 @@ useScrollToHash();
 
 // Loading state - show loading until we have the editor with AI
 const isLoading = computed(() => {
-  if (!editor.value) return true
+  if (!editor.value) return true;
   // Check if AI extension is loaded
-  const hasAiExtension = editor.value.extensionManager.extensions.some(e => e.name === 'ai')
-  return !hasAiExtension && aiToken.value !== null
+  const hasAiExtension = editor.value.extensionManager.extensions.some(
+    (e) => e.name === "ai"
+  );
+  return !hasAiExtension && aiToken.value !== null;
 });
 </script>
 
@@ -263,7 +275,7 @@ const isLoading = computed(() => {
       <NotionEditorHeader />
 
       <EditorContent
-        :editor="editor"
+        :editor="typedEditor"
         role="presentation"
         class="notion-like-editor-content"
         :style="cursorStyle"
@@ -275,10 +287,10 @@ const isLoading = computed(() => {
       <SlashDropdownMenu />
 
       <!-- AI Menu -->
-      <AiMenu :editor="editor" />
+      <AiMenu :editor="typedEditor" />
 
       <!-- Drag Context Menu -->
-      <DragContextMenu :editor="editor" :with-slash-command-trigger="true" />
+      <DragContextMenu :editor="typedEditor" :with-slash-command-trigger="true" />
 
       <!-- Floating toolbar -->
       <NotionEditorFloatingToolbar />
